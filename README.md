@@ -2,6 +2,6 @@
 
 Group members:
 
-  Calvin Kusek- ckusek2@nd.edu
-  Rafael Mendizabal- rmendiza@nd.edu
-  Dalton Dove- ddove@nd.edu
+  Calvin Kusek - ckusek2@nd.edu
+  Rafael Mendizabal - rmendiza@nd.edu
+  Dalton Dove - ddove@nd.edu
