@@ -13,9 +13,19 @@ int main(int argc, char *argv[]){
 		return 1;	// exit
 	}
 
-	if(atoi(argv[2]) < 0){	// Making sure threshold is positive
+	int thresh = atoi(argv[2]);	// Inputted threshold
+	if(thresh < 0){	// Making sure threshold is positive
 		printf("Threshold cannot be negative\n");
 		return 1;	// exit
+	}
+
+	// Opening file for reading
+	char *filename = argv[1];
+	FILE *file = fopen(filename, "r");
+
+	// Testing to make sure filename is an actual file
+	if(file == NULL){
+		printf("Couldn't open %s: No such file\n", filename);
 	}
 
 
