@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]){
 	
@@ -15,8 +16,8 @@ int main(int argc, char *argv[]){
 		exit(1);	// exit
 	}
 
-	int thresh = atoi(argv[2]);	// Inputted threshold
-	if(thresh < 0){	// Making sure threshold is positive
+	float thresh = strtof(argv[2],NULL);	// Inputted threshold
+	if(thresh < 0.0){	// Making sure threshold is positive
 		printf("Threshold cannot be negative\n");
 		exit(1);	// exit
 	}
@@ -30,7 +31,24 @@ int main(int argc, char *argv[]){
 		printf("Unable to open %s: %s\n", filename, strerror(errno));
 		exit(1);	// exit
 	}
+	
+	
+	// Going over file and counting human readable/nonreadable characters
+	char buffer[4096];
+	int totalBytes = 0;
+	int readBytes = 0;
+	int result = read(fd, buffer, 4096);
+	while(result > 0){
+		for(int i = 0; i < result; i++){
+			if(buffer[i] >= 32 && buffer[i] <= 126){
+				readBytes++;
+			}
+		}
+		totalBytes += result;
+		result = read(fd, buffer, 4096);
+	}
 
-	
-	
+	float perc = (float)readBytes/(float)totalBytes;
+	printf("%f, %i, %i\n", perc, readBytes, totalBytes);
+
 }
