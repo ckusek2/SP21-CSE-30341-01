@@ -1,0 +1,323 @@
+<title>CSE 30341 - Project 1</title>
+
+<link rel="stylesheet" href="../page-style.css">
+
+<body class="p1">
+
+<h1>Project 1 - System Class and Error Checking</h1>
+
+First, read the <a href="../projects-general.html">general instructions</a> for the projects. 
+Make sure you are using the correct compiler on the correct machine. This project is a 
+warm up assignment for the course. The basic concept is very simple: to write a program that 
+analyzes files and directories for human readable text. However, the main challenge of 
+engineering operating systems is dealing with errors and unexpected conditions. Thus, 
+the main focus of this assignment will be on the correct handling of errors. The goals 
+of this project are:
+
+<ul>
+<li>To review your knowledge of basic C programming.
+<li>To learn the most essential Unix system calls.
+<li>To gain experience in rigorous error handling.
+</ul>
+
+<h2>Tutorials</h2>
+
+Further tutorials and guides will be added at the start of Week 2 for this project. 
+
+<ul>
+<li>Read the <a href="../projects-general.html">general instructions</a> for the projects
+</ul>
+
+<h2>Part 1: File Parsing</h2>
+
+Write a C program called <tt>textdetect</tt> which scans a file for the presence
+of human readable characters. For the purposes of this project, we will define a human
+readable character using the <a href="https://www.rapidtables.com/code/text/ascii-table.html">ASCII table</a>
+as any byte with a value between 32 (space) and 126 (tilde). The program will be invoked 
+as follows:
+
+<pre>
+textdetect InputFile Threshold
+</pre>
+
+where <tt>InputFile</tt> is the file to read and <tt>Threshold</tt> is a floating point number 
+from 0 to 100.  If successful, the program output the percent of human readable characters in the file 
+to the screen and the total bytes present in the file. 
+In addition, a rudimentary JSON should be written containing the filename,
+bytes that are human readable, and the total bytes in the file as a <tt>results.json</tt> 
+file if the percentage of human readable characters is greater than the value of 
+<tt>Threshold</tt>.  If the percentage is less than <tt>Threshold</tt>, <tt>results.json</tt> 
+should be contain an empty array [].   
+
+<pre>
+% ls
+test.dat
+
+% textdetect test.dat 1.3
+textdetect: test.dat -> 3.79% HR [379 / 1000 bytes]
+
+% ls
+test.dat results.json
+
+% more results.json
+[ { "name" : "test.dat", "readable" : 379, "readable" : 1000 } ]
+</pre>
+
+If not successful, it should print a suitable error message, like this:
+
+<pre>
+textdetect: couldn't open foo.missing: No such file or directory
+</pre>
+
+Please read the rest of the assignment before doing Part 1.
+
+<h2>Multi-File / Directory Operation</h2>
+
+Write a C program called <tt>dtextdetect</tt> which takes in a directory
+as an input.  It should do the same thing as <tt>textdetect</tt> but on all
+files and all sub-directories. 
+
+<pre>
+dtextdetect SourcePath Threshold
+</pre>
+
+As the program runs, it should output which file is being examined.  At the
+successful completion of the program, it should output the total number of 
+directories, files, and bytes examined as well as exiting with result 0.  
+
+<pre>
+% ls
+testdir
+
+% dtextdetect testdir 20
+testdir/test.dat -> 3.79% HR [3790 / 10000 bytes] 
+testdir/foo.txt -> 95.6% HR [95600 / 100000 bytes] **
+testdir/bad.so -> 0.0% HR [ 0 / 10324 bytes]
+testdir/yes.txt -> 65.9% HR [ 6590 / 10000 bytes ] **
+dtextdetect: Examined 0 directories, 3 files, and 130324 bytes from testdir
+
+% ls
+testdir results.json
+
+% more results.json
+[ { "name" : "testdir/foo.txt", "readable" : 95600, "bytes" : 10000 },
+ { "name" : "testdir/yes.txt", "readable" : 6590, "bytes" : 10000 } ] 
+</pre>
+ 
+If <tt>dtextdetect</tt> encounters any kind of error or user mistake, it must
+immediately stop and emit a message that states the program name, the failing
+operation, and the reason for the failure, and then exit with result 1.  For 
+example:
+
+<pre>
+% ls 
+test.txt test foo noperm
+
+% dtextdetect NotADir
+dtextdetect: No such file or directory
+
+% dtextdetect noperm
+dtextdetect: could not open directory: permission denied
+</pre>
+
+If the program is invoked incorrectly, it should immediately exit with a helpful message:
+
+<pre>
+% dtextdetect test 5 outdir
+dtextdetect: Too many arguments
+usage: dtextdetect SourcePath Threshold
+
+% dtextdetect test -2
+dtextdetect: Threshold cannot be negative
+</pre>
+
+<b>Special Cases:</b> If the source contains something other than a directory or file, then <tt>dtextdetect</tt> should 
+halt without examining anything more and display a suitable error message.
+<br>
+In short, there should be no possible way to invoke the program that results in a segmentation fault, 
+a cryptic message, or a silent failure. Either the program runs successfully to completion, or it emits a 
+helpful and detailed error message to the user.
+
+<h2>System Calls</h2>
+
+To carry out this assignment, you will need to learn about the following system calls:
+
+<pre>open, creat, read, write, close, stat, mkdir, opendir, closedir, readdir, strerror, errno, exit
+</pre>
+
+Manual pages ("man pages") provide the complete reference documentation for system calls.  They are available on any Linux machine by typing <tt>man</tt> with the section number and topic name.  Section 1 is for programs, section 2 for system calls, section 3 for C library functions.  For example <tt>man 2 open</tt> gives you the man page for open.  You can also use this <a href="http://linux.die.net/man">online service</a> which has the same information.
+<p>
+As you probably already know, man pages are a little difficult to digest, because they give complete information about one call, but not how they all fit together.  However, with a little practice, you can become an expert with man pages.  Consider the man page for <tt>open</tt>.  At the top, it tells you what include files are needed in order to use <tt>open</tt>:
+</p><pre>#include &lt;sys/types.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;fcntl.h&gt;
+</pre>
+
+It also gives the the prototype for several variations of the system call:
+
+<pre>int open(const char *pathname, int flags);
+int open(const char *pathname, int flags, mode_t mode);
+int creat(const char *pathname, mode_t mode);
+</pre>
+
+The documentation contains many more details than you need, but it is usually a good bet to read the first paragraph, and then skim ahead until you find what you are looking for.  It is also always fruitful to read the RETURN VALUE section, and to use the SEE ALSO section to look up related system calls.
+<p>
+
+</p><h2>Handling Errors</h2>
+
+An operating system (and any program that deals with it) must be vigilant in dealing with errors and unexpected conditions.  End users constantly attempt operations that are illegal or make no sense.  Digital devices behave in unpredictable ways.  So, when you write operating system code, you must always check return codes and take an appropriate action on failure.
+<p>
+How do you know if a system call succeeded or failed?  In general read the RETURN VALUE section of the manual page, and it will tell you exactly how success or failure is indicated.  However, nearly all Unix system calls that <b>return an integer</b> (open, read, write, close, etc.) have the following convention:
+</p><dir>
+<li> If the call succeeded, it returns an integer greater than or equal to zero.
+</li><li> If the call failed, it returns an integer less than zero, and sets the global variable <tt>errno</tt> to reflect the reason for the error.
+</li></dir>
+
+And, nearly all C library calls that <b>return a pointer</b> (malloc, fopen, etc.) have a slightly different convention:
+<dir>
+<li> If the call succeeded, it returns a non-null pointer.
+</li><li> If the call failed, it returns null, and sets the global variable <tt>errno</tt> to reflect the reason for the error.
+</li></dir>
+
+The <tt>errno</tt> variable is simply an integer that explains the reason behind an errno.  Each integer value is given a macro name that makes it easy to remember, like <tt>EPERM</tt> for permission denied.  All of the error types are defined in the file <tt>/usr/include/asm/errno.h</tt>.  Here are a few of them:
+
+<pre>#define EPERM            1      /* Operation not permitted */
+#define ENOENT           2      /* No such file or directory */
+#define ESRCH            3      /* No such process */
+#define EINTR            4      /* Interrupted system call */
+...
+</pre>
+
+You can check for specific kinds of errors like this:
+
+<pre>fd = open(filename,O_RDONLY,0);
+if(fd&lt;0) {
+	 if(errno==EPERM) {
+		printf("Error: Permission Denied\n");
+	} else {
+		printf("Some other error.\n");
+		...
+	}
+	exit(1);
+}
+</pre>
+
+This would get rather tedious with 129 different error messages.  Instead, use the <tt>strerror</tt> routine to convert <tt>errno</tt> into a string, and print out a descriptive message like this:
+
+<pre>fd = open(filename,O_RDONLY,0);
+if(fd&lt;0) {
+	 printf("Unable to open %s: %s\n",filename,strerror(errno));
+	 exit(1);
+}
+</pre>
+
+<h2>Reading a File</h2>
+
+While it is possible to simply read a file one byte at a time, this
+tends to be highly inefficient.  As such, you should read the file in
+bulk through large, buffered reads. However, because a file may 
+be very large (possibly larger than all available memory), you cannot 
+expect to load it all into memory at once.  Instead, the file must be
+accessed in chunks: read one chunk from the source into memory, examine 
+it, and keep going until the whole file is copied. (The exact size of 
+the chunk isn't critical, but 4KB is a good round number, 
+for reasons we will discuss later in the semester.)
+<p>
+
+So, the general strategy is this:
+
+</p><pre>open the source file
+open the destination file
+
+char buffer[4096]
+
+loop {
+    read a chunk from the source into the buffer
+    examine the chunk
+}
+
+close the source file
+</pre>
+
+However, it's not quite that simple.  The <tt>read</tt> system call
+has some unusual behavior. If you request to read <tt>count</tt> bytes of data 
+like this:
+
+<pre>int result = read(fd,buffer,count);
+</pre>
+
+There are several possible outcomes.  If <tt>read</tt> was able to access some data, 
+it will return the number of bytes actually read.  The number <i>might</i> be as high 
+as <tt>count</tt>, but it could also be smaller.  For example, if you request to read 
+4096 bytes, but there are only 40 bytes remaining in the file, <tt>read</tt> will return 40.  
+If there is nothing more left in the file, <tt>read</tt> will return zero.  If there is 
+an error, the result will be less than zero, as above. <tt>write</tt> if we were using it
+operates in a very similar way.
+<p>
+So, to copy a file carefully, you will need to do something like this:
+</p><pre>loop over {
+     read a chunk of data from the source file
+     if there was an error reading, exit with an error
+     if no data left, end the loop
+
+     examine the chunk of data          
+}
+</pre>
+
+<h2>Testing</h2>
+
+A set of files will be provided for download as part of a posted tutorial at the beginning of 
+Week 2.  You are also welcome to share example files / testing scripts via CampusWire.
+
+You should test a variety of inputs as well as a variety of user input.
+
+A few errors / cases that you will NOT need to deal with / necessarily test for:
+
+<ul>
+<li><b>Symbolic links:</b> A symlink can introduce the potential for looping.  You may assume that any scans cannot have loops. If you would 
+like to be extremely robust, in your code, you could detect the presence of a symlink and not follow the symlink.
+<li><b>Disk full:</b> You should catch this via normal error correction but we / you should not be able to fill up the disk to test this case.
+<li><b>Wonky file names:</b> You may assume that the filename will not contain quotation marks or other non-standard characters.
+</ul>
+
+Errors that you will definitely need to think about include:
+
+<ul>
+<li>What if the <tt>results.json</tt> file is already present in the directory?
+<li>What if you cannot create the <tt>results.json</tt> file?
+<li>What if you do not have permission to read a particular directory?
+<li>What if you do not have permission to read a particular file?
+<li>What if the file has zero bytes?
+<li>What if the user runs your code with no arguments?
+<li>What if the user flips the arguments (e.g. threshold is listed first and the directory is listed second)?
+</ul>
+
+Think for every operation and system call or calculation that you do in your code, is there a way that the operation could 
+go bad?  If it does go bad, how do you protect your code and exit gracefully? Your code should be informative but the
+behavior that should happen is up to you.  
+
+
+<h2>Grading</h2>
+
+Your grade will be based on:
+
+<ul>
+<li> Single file copy. (20%)
+<li> Recursive directory copy. (40%)
+<li> Correct handling of all error conditions. (30%)
+<li> Good coding style, such as clear formatting, sensible variable names, useful comments, consistent git commits. (10%)
+</li>
+
+A more detailed rubric will be posted by the middle of Week 2 along with additional test cases.
+
+
+<h2>git Commit History</h2>
+
+To encourage you to work on the project regularly (rather than leaving it until the last second) and to practice performing incremental development, part of your grade will be based 
+on whether or not you have regular and reasonably sized commits in your git log.
+<br>
+That is, you will lose points if you commit everything at once near the project deadline.
+
+
+
+</body>
