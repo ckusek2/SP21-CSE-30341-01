@@ -1,6 +1,6 @@
 CC=		gcc
 CFLAGS=		-g -Wall -std=gnu99 -Iinclude
-TARGETS=	textdetect
+TARGETS=	textdetect dtextdetect
 
 all:		$(TARGETS)
 
