@@ -15,3 +15,7 @@ clean:
 textdetect: textdetect.o textdetect.c
 	@echo Compiling $@
 	@$(CC) $(CFLAGS) -o $@ $<
+
+dtextdetect: dtextdetect.o dtextdetect.c
+	@echo Compiling $@
+	@$(CC) $(CFLAGS) -o $@ $<
