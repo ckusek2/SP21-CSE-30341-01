@@ -35,11 +35,11 @@ int main(int argc, char *argv[]){
 	
 	// Going over file and counting human readable/nonreadable characters
 	char buffer[4096];
-	int totalBytes = 0;
-	int readBytes = 0;
-	int result = read(fd, buffer, 4096);
-	while(result > 0){
-		for(int i = 0; i < result; i++){
+	int totalBytes = 0;	// Total number of bytes in file
+	int readBytes = 0;	// Number of human readable characters
+	int result = read(fd, buffer, 4096);	// Read chunk of data from file
+	while(result > 0){	// Run while still data in file
+		for(int i = 0; i < result; i++){	// Count human readable bytes in chunk of data
 			if(buffer[i] >= 32 && buffer[i] <= 126){
 				readBytes++;
 			}
@@ -48,7 +48,27 @@ int main(int argc, char *argv[]){
 		result = read(fd, buffer, 4096);
 	}
 
-	float perc = (float)readBytes/(float)totalBytes;
-	printf("%f, %i, %i\n", perc, readBytes, totalBytes);
+	float perc = (float)readBytes/(float)totalBytes * 100;	// % of human readable characters in file
+	
+	// Outputting information to user
+	printf("textdetect: %s -> %.02f%% HR [%i / %i bytes]\n", filename, perc, readBytes, totalBytes);
 
+	// Opening json file to write to
+	FILE *fp = fopen("results.json", "w+");
+	// Write statistics to results.json
+	if(perc >= thresh){
+		fprintf(fp,"[ {\"name\" : \"%s\", \"readable\" : %i, \"bytes\" : %i } ]\n", filename, readBytes, totalBytes);
+	}
+
+	// Closing results.json file
+	if(fclose(fp) != 0){
+		printf("Unable to close results.json: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	// Closing file that was being read
+	if(close(fd) < 0){
+		printf("Unable to close %s: %s\n", filename, strerror(errno));
+		exit(1);	
+	}
 }
