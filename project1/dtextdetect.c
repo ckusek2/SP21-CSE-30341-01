@@ -34,31 +34,43 @@ int main(int argc, char *argv[]){
 	
 	
 	// Going over file and counting human readable/nonreadable characters
+	
+	int dirCount = 0;
+	int fileCount = 0;
+	
 	char buffer[4096];
 	int totalBytes = 0;	// Total number of bytes in file
 	int readBytes = 0;	// Number of human readable characters
-	int result = read(fd, buffer, 4096);	// Read chunk of data from file
-	while(result > 0){	// Run while still data in file
-		for(int i = 0; i < result; i++){	// Count human readable bytes in chunk of data
-			if(buffer[i] >= 32 && buffer[i] <= 126){
-				readBytes++;
-			}
-		}
-		totalBytes += result;
-		result = read(fd, buffer, 4096);
-	}
-
-	float perc = (float)readBytes/(float)totalBytes * 100;	// % of human readable characters in file
 	
-	// Outputting information to user
-	printf("textdetect: %s -> %.02f%% HR [%i / %i bytes]\n", filename, perc, readBytes, totalBytes);
+	/* for all directories and files */
 
-	// Opening json file to write to
-	FILE *fp = fopen("results.json", "w+");
-	// Write statistics to results.json
-	if(perc >= thresh){
-		fprintf(fp,"[ {\"name\" : \"%s\", \"readable\" : %i, \"bytes\" : %i } ]\n", filename, readBytes, totalBytes);
-	}
+		int result = read(fd, buffer, 4096);	// Read chunk of data from file
+		while(result > 0){	// Run while still data in file
+			for(int i = 0; i < result; i++){	// Count human readable bytes in chunk of data
+				if(buffer[i] >= 32 && buffer[i] <= 126){
+					readBytes++;
+				}
+			}
+			totalBytes += result;
+			result = read(fd, buffer, 4096);
+		}
+
+		float perc = (float)readBytes/(float)totalBytes * 100;	// % of human readable characters in file
+
+		// Outputting information to user
+		printf("textdetect: %s -> %.02f%% HR [%i / %i bytes]\n", filename, perc, readBytes, totalBytes);
+
+		// Opening json file to write to
+		FILE *fp = fopen("results.json", "w+");
+		// Write statistics to results.json
+		if(perc >= thresh){
+			fprintf(fp,"[ {\"name\" : \"%s\", \"readable\" : %i, \"bytes\" : %i } ]\n", filename, readBytes, totalBytes);
+		}
+
+	/* end loop */	
+
+	// Print dtextdetect results
+	printf("dtextdetect: Examined %i directories, %i files, and %i bytes from %s", dirCount, fileCount, totalBytes, filename);
 
 	// Closing results.json file
 	if(fclose(fp) != 0){
