@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <limits.h>
 
 // Initialize directory, byte, and file counting variables
 int dirCount;
@@ -66,9 +67,8 @@ void listAllDirs(char *pPath){
 	DIR *dirp;
 	struct dirent *dp;
 	struct stat sb;
-	//char newPath[40] = "\0";
-	//strcpy(newPath, pPath);
-	//printf("newPath: %s\n",newPath);
+	char newPath[1000];
+	//char buf[PATH_MAX + 1];
 
 	dirp = opendir(pPath);
 
@@ -94,21 +94,26 @@ void listAllDirs(char *pPath){
 		//if((sb.st_mode & S_IFMT) == S_ISDIR){
 		if( S_ISDIR(sb.st_mode) ){
 			dirCount++;
-			//printf("HERE");
-			//char *newPath = strcat(pPath,strcat("/",dp->d_name));
-			//strcat(pPath,"/");
-			//strcat(newPath, dp->d_name);
+
+			strcpy(newPath, pPath);
 			//strcat(newPath, "/");
-			//printf("New Path: %s\n", realpath(pPath));
-			listAllDirs(dp->d_name);
-			//printf("DIR\n");
+			strcat(newPath, dp->d_name);
+			//strcat(newPath, "/");
+			//realpath(dp->d_name, buf);
+			//printf("newPath: %s\n", newPath);
+			listAllDirs(newPath);
+			//printf("realpath: %s\n", buf);
 		}				
 		else{
 			fileCount++;
-			readFile(dp->d_name);
+			strcpy(newPath, pPath);
+			strcat(newPath, dp->d_name);
+			strcat(newPath, "/");
+			readFile(pPath);
 			//printf("%s\n", dp->d_name);
 		}
 	}
+	closedir(dirp);
 }
 
 	
