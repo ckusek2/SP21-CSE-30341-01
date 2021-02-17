@@ -99,11 +99,13 @@ void listAllDirs(char *pPath){
 		// Handle back directory
 		if( strcmp(dp->d_name,"..") == 0 || strcmp(dp->d_name,".") == 0 )
 			continue;
-
+		
+		// Creating full new path
 		strcpy(newPath, pPath);
 		strcat(newPath, "/");
 		strcat(newPath, dp->d_name);
-
+		
+		// Call functions with newPath. They will act accordingly.
 		listAllDirs(newPath);
 		readFile(newPath);
 		}
