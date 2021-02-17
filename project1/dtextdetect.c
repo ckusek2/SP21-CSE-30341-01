@@ -45,14 +45,29 @@ int main(int argc, char *argv[]){
 	fileCount = 0;
 	dTotalBytes = 0;
 
+	// Check whether directory is valid
+	DIR *dirp = opendir(pPath);
+	if(!dirp){
+
+		char szTemp[265];
+
+		sprintf(szTemp, "Could not open %s", pPath);
+		perror(szTemp);
+		exit(1);
+	}
+	closedir(dirp);
+
 	// Opening json file to write to
 	fp = fopen("results.json", "w+");
+	
+	fprintf(fp,"[\n");
 
 	// Use listAllDirs to go through directories
 	listAllDirs(pPath);
 
 	// Print dtextdetect results
-	printf("dtextdetect: Examined %i directories, %i files, and %i bytes from %s", dirCount, fileCount, dTotalBytes, pPath);
+	printf("dtextdetect: Examined %i directories, %i files, and %i bytes from %s\n", dirCount, fileCount, dTotalBytes, pPath);
+	fprintf(fp,"]\n");
 
 	// Closing results.json file
 	if(fclose(fp) != 0){
@@ -63,23 +78,17 @@ int main(int argc, char *argv[]){
 }
 	
 void listAllDirs(char *pPath){
-	printf("pPath: %s\n",pPath);
 	DIR *dirp;
 	struct dirent *dp;
 	struct stat sb;
 	char newPath[1000];
-	//char buf[PATH_MAX + 1];
 
 	dirp = opendir(pPath);
 
 	if(dirp == NULL){
-
-		char szTemp[256];
-
-		sprintf(szTemp, "Could not open %s", pPath);
-		perror(szTemp);
 		return;
 	}
+	dirCount++;
 
 	// Loop using readdir until the result is NULL
 	while((dp = readdir(dirp)) != NULL){
@@ -91,28 +100,13 @@ void listAllDirs(char *pPath){
 		if( strcmp(dp->d_name,"..") == 0 || strcmp(dp->d_name,".") == 0 )
 			continue;
 
-		//if((sb.st_mode & S_IFMT) == S_ISDIR){
-		if( S_ISDIR(sb.st_mode) ){
-			dirCount++;
+		strcpy(newPath, pPath);
+		strcat(newPath, "/");
+		strcat(newPath, dp->d_name);
 
-			strcpy(newPath, pPath);
-			//strcat(newPath, "/");
-			strcat(newPath, dp->d_name);
-			//strcat(newPath, "/");
-			//realpath(dp->d_name, buf);
-			//printf("newPath: %s\n", newPath);
-			listAllDirs(newPath);
-			//printf("realpath: %s\n", buf);
-		}				
-		else{
-			fileCount++;
-			strcpy(newPath, pPath);
-			strcat(newPath, dp->d_name);
-			strcat(newPath, "/");
-			readFile(pPath);
-			//printf("%s\n", dp->d_name);
+		listAllDirs(newPath);
+		readFile(newPath);
 		}
-	}
 	closedir(dirp);
 }
 
@@ -120,12 +114,10 @@ void listAllDirs(char *pPath){
 void readFile(char *filename){
 	
 	int fd = open(filename, O_RDONLY,0);
+	if(fd < 0)
+		exit(1);
 
-	// Testing to make sure filename is an actual file
-	if(fd < 0){
-		printf("Unable to open %s: %s\n", filename, strerror(errno));
-		exit(1);	// exit
-	}
+	fileCount++;
 	
 	
 	// Going over file and counting human readable/nonreadable characters	
@@ -152,7 +144,7 @@ void readFile(char *filename){
 	
 	// Write statistics to results.json
 	if(perc >= thresh){
-		fprintf(fp,"[ {\"name\" : \"%s\", \"readable\" : %i, \"bytes\" : %i } ]\n", filename, readBytes, fTotalBytes);
+		fprintf(fp,"{\"name\" : \"%s\", \"readable\" : %i, \"bytes\" : %i }, \n", filename, readBytes, fTotalBytes);
 	}
 		
 	// Closing file that was being read
