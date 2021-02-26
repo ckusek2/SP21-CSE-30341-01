@@ -52,8 +52,23 @@ void commandHandler(char *command){
 }
 
 void start(char *command){
+	
+	// Get command name
 	command = strtok(NULL, " ");
-	printf("%s\n", command);
+	char *execCommand = command;
+	
+	// Fill up array of arguments that follow command name
+	char *commandList[1000];
+	int index = 0;
+	command = strtok(NULL, " ");
+	while(command != NULL){
+		commandList[index] = command;
+		command = strtok(NULL, " ");
+		index++;
+	}
+
+	
+
 	return;
 }
 void wait(char *command){
