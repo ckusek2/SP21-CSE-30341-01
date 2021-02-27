@@ -10,7 +10,7 @@
 // Declare functions
 void commandHandler(char *command);
 void start(char *command);
-void wait(char *command);
+void waitC(char *command);
 void waitfor(char *command);
 void run(char *command);
 void kill(char *command);
@@ -35,7 +35,7 @@ void commandHandler(char *command){
 	if(strcmp(command,"start") == 0)
 		start(command);
 	else if(strcmp(command,"wait") == 0)
-		wait(command);
+		waitC(command);
 	else if(strcmp(command,"waitfor") == 0)
 		waitfor(command);
 	else if(strcmp(command,"run") == 0)
@@ -52,26 +52,40 @@ void commandHandler(char *command){
 }
 
 void start(char *command){
-	
+		
 	// Get command name
 	command = strtok(NULL, " ");
 	char *execCommand = command;
-	
-	// Fill up array of arguments that follow command name
-	char *commandList[1000];
+
+	// Add arguments to a null-terminated array
+	char *args[1000];
 	int index = 0;
 	command = strtok(NULL, " ");
 	while(command != NULL){
-		commandList[index] = command;
+		args[index++] = command;
 		command = strtok(NULL, " ");
-		index++;
+	}		
+	args[index] = NULL;
+
+	pid_t pid;
+
+	if((pid = fork()) < 0){	// Fork child process
+		printf("Error with fork\n");
+		exit(1);
+	} else if(pid == 0){	// Child process
+		if(execvp(execCommand, args) < 0){	// Execute command
+			printf("Error with execvp\n");
+			exit(1);
+		}
+	} else {
+		printf("%i\n", pid);
 	}
 
-	
 
 	return;
 }
-void wait(char *command){
+
+void waitC(char *command){
 	return;
 }
 void waitfor(char *command){
