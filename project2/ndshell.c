@@ -92,7 +92,38 @@ void waitfor(char *command){
 	return;
 }
 void run(char *command){
+
+	// Get command name
+	command = strtok(NULL, " ");
+	char *execCommand = command;
+
+	// Add arguments to a null-terminated array
+	char *args[1000];
+	int index = 0;
+	command = strtok(NULL, " ");
+	while(command != NULL){
+		args[index++] = command;
+		command = strtok(NULL, " ");
+	}		
+	args[index] = NULL;
+
+	pid_t pid;
+	int status;
+
+	if((pid = fork()) < 0){	// Fork child process
+		printf("Error with fork\n");
+		exit(1);
+	} else if(pid == 0){	// Child process
+		if(execvp(execCommand, args) < 0){	// Execute command
+			printf("Error with execvp\n");
+			exit(1);
+		}
+	} else {
+		while(wait(&status) != pid);
+	}
 	
+	printf("ndshell: process %jd exited normally with status %i\n", pid, status);
+
 	return;
 }
 void kill(char *command){
