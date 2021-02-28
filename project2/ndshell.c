@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <inttypes.h>
 
 // Declare functions
 void commandHandler(char *command);
@@ -13,7 +15,7 @@ void start(char *command);
 void waitC(char *command);
 void waitfor(char *command);
 void run(char *command);
-void kill(char *command);
+void killC(char *command);
 void bound(char *command);
 
 int main(int argc, char *argv[]){
@@ -41,7 +43,7 @@ void commandHandler(char *command){
 	else if(strcmp(command,"run") == 0)
 		run(command);
 	else if(strcmp(command,"kill") == 0)
-		kill(command);
+		killC(command);
 	else if(strcmp(command,"bound") == 0)
 		bound(command);
 	else{
@@ -60,7 +62,6 @@ void start(char *command){
 	// Add arguments to a null-terminated array
 	char *args[1000];
 	int index = 0;
-	command = strtok(NULL, " ");
 	while(command != NULL){
 		args[index++] = command;
 		command = strtok(NULL, " ");
@@ -81,7 +82,6 @@ void start(char *command){
 		printf("%i\n", pid);
 	}
 
-
 	return;
 }
 
@@ -89,6 +89,16 @@ void waitC(char *command){
 	return;
 }
 void waitfor(char *command){
+	
+	// Get process ID
+	char *tmp;
+	command = strtok(NULL, " ");
+	pid_t pid = (pid_t)strtoimax(command, &tmp, 10);
+	
+	int status;
+
+	while(wait(&status) != pid); // Wait for process to finish
+
 	return;
 }
 void run(char *command){
@@ -100,7 +110,6 @@ void run(char *command){
 	// Add arguments to a null-terminated array
 	char *args[1000];
 	int index = 0;
-	command = strtok(NULL, " ");
 	while(command != NULL){
 		args[index++] = command;
 		command = strtok(NULL, " ");
@@ -119,14 +128,14 @@ void run(char *command){
 			exit(1);
 		}
 	} else {
-		while(wait(&status) != pid);
+		while(wait(&status) != pid); // Wait for process to finish
 	}
 	
-	printf("ndshell: process %jd exited normally with status %i\n", pid, status);
+	printf("ndshell: process %d exited normally with status %i\n", pid, status);
 
 	return;
 }
-void kill(char *command){
+void killC(char *command){
 	return;
 }
 void bound(char *command){
