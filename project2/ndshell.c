@@ -28,9 +28,14 @@ int main(int argc, char *argv[]){
 	int run = 1;
 	while(run){
 		printf("ndshell> ");
-		scanf("%[^\n]%*c",commandline); // Read full line of input
-		command = strtok(commandline, " "); // Split string into tokens. 
+		fgets(commandline, 1000, stdin); // Read full line of input
+
+		commandline[strcspn(commandline, "\n")] = '\0'; // Remove new line character 
 		
+		if(!(command = strtok(commandline, " "))) { // Make sure input can be tokenized
+			continue;
+		}
+
 		if(strcmp(command, "exit") == 0)	// Exit loop if user enters "exit"
 			run = 0;
 		else
@@ -53,7 +58,7 @@ void commandHandler(char *command){
 	else if(strcmp(command,"bound") == 0)
 		bound(command);
 	else{
-		printf("ndshell: unknown command: %s\n", command);
+		printf("ndshell: unknown command: %s", command);
 	}
 }
 
