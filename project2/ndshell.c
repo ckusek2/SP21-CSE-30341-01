@@ -13,7 +13,7 @@
 // Declare functions
 void commandHandler(char *command);
 void start(char *command);
-void waitC(char *command);
+void waitC();
 void waitfor(char *command);
 void run(char *command);
 void killC(char *command);
@@ -43,7 +43,7 @@ void commandHandler(char *command){
 	if(strcmp(command,"start") == 0)
 		start(command);
 	else if(strcmp(command,"wait") == 0)
-		waitC(command);
+		waitC();
 	else if(strcmp(command,"waitfor") == 0)
 		waitfor(command);
 	else if(strcmp(command,"run") == 0)
@@ -87,8 +87,8 @@ void start(char *command){
 	}
 }
 
-void waitC(char *command){
-	return;
+void waitC(){
+	return;	
 }
 
 void waitfor(char *command){
@@ -145,7 +145,22 @@ void run(char *command){
 }
 
 void killC(char *command){
-	return;
+	
+	// Get process ID
+	char *tmp;
+	command = strtok(NULL, " ");
+	pid_t pid = (pid_t)strtoimax(command, &tmp, 10);
+
+	// Kill process with SIGKILL and check for errors
+	if(kill(pid, SIGKILL)<0){
+		if(errno==ESRCH)	// Process doesn't exist
+			printf("ndshell: No such process\n");
+		else	// Other error
+			printf("Error occurred: %s\n", strerror(errno));
+	} else{		// No errors
+		printf("ndshell: process %d exited abnormally with signal 9: Killed.\n", pid);
+	}
+
 }
 void bound(char *command){
 	return;
