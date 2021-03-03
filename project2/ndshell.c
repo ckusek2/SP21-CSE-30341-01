@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <inttypes.h>
+#include <sys/signal.h>
 
 // Declare functions
 void commandHandler(char *command);
@@ -24,11 +25,16 @@ int main(int argc, char *argv[]){
 	char *command;
 
 	// Loop over input
-	while(1){
+	int run = 1;
+	while(run){
 		printf("ndshell> ");
-		scanf("%[^\n]%*c",commandline); // Read full line of input.
+		scanf("%[^\n]%*c",commandline); // Read full line of input
 		command = strtok(commandline, " "); // Split string into tokens. 
-		commandHandler(command);
+		
+		if(strcmp(command, "exit") == 0)	// Exit loop if user enters "exit"
+			run = 0;
+		else
+			commandHandler(command);
 	}
 }
 
@@ -48,9 +54,7 @@ void commandHandler(char *command){
 		bound(command);
 	else{
 		printf("ndshell: unknown command: %s\n", command);
-		return;
 	}
-	return;
 }
 
 void start(char *command){
@@ -78,29 +82,35 @@ void start(char *command){
 			printf("Error with execvp\n");
 			exit(1);
 		}
-	} else {
-		printf("%i\n", pid);
+	} else{	// Output info from parent process
+		printf("ndshell: process %d started\n", pid);
 	}
-
-	return;
 }
 
 void waitC(char *command){
 	return;
 }
+
 void waitfor(char *command){
 	
 	// Get process ID
 	char *tmp;
 	command = strtok(NULL, " ");
 	pid_t pid = (pid_t)strtoimax(command, &tmp, 10);
-	
-	int status;
 
-	while(wait(&status) != pid); // Wait for process to finish
-
-	return;
+	// Check if entered process still exists
+	if(kill(pid, 0)<0){
+		if(errno==ESRCH)	// Process doesn't exist
+			printf("ndshell: No such process\n");
+		else	// Other error
+			printf("Error occurred: %s\n", strerror(errno));
+	} else{		// Process does exist
+		int status;
+		while(wait(&status) != pid); // Wait for process to finish
+		printf("ndshell: process %d exited normally with status %i\n", pid, status);
+	}
 }
+
 void run(char *command){
 
 	// Get command name
@@ -132,9 +142,8 @@ void run(char *command){
 	}
 	
 	printf("ndshell: process %d exited normally with status %i\n", pid, status);
-
-	return;
 }
+
 void killC(char *command){
 	return;
 }
