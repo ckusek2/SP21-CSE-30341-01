@@ -93,7 +93,8 @@ void start(char *command){
 }
 
 void waitC(){
-	return;	
+	
+	return;
 }
 
 void waitfor(char *command){
@@ -163,14 +164,14 @@ void killC(char *command){
 	// Get process ID
 	char *tmp;
 	if(!(command = strtok(NULL, " "))){ // Check for correct usage
-		printf("ndshell: Enter the process ID. Usage: \"waitfor [ID]\"\n");
+		printf("ndshell: Enter the process ID. Usage: \"kill [ID]\"\n");
 		return;
 	}
 
 	pid_t pid = (pid_t)strtoimax(command, &tmp, 10); 
 	// Ensure a positive number was used as the pid
 	if(pid <= 0){
-		printf("ndshell: Enter a positive number for process ID. Usage: \"waitfor [ID]\"\n");
+		printf("ndshell: Enter a positive number for process ID. Usage: \"kill [ID]\"\n");
 		return;
 	}
 
