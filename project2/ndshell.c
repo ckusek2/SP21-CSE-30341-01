@@ -186,8 +186,8 @@ void killC(char *command){
 	} else{		// No errors
 		printf("ndshell: process %d exited abnormally with signal 9: Killed.\n", pid);
 	}
-
 }
+
 void bound(char *command){
 	
 	time_t start, current;
@@ -249,12 +249,11 @@ void bound(char *command){
 
 				return;
 			}
+
 			if(waitpid(pid, &status, WNOHANG) != 0)
 				break;
 		}
 	}
 	
 	printf("ndshell: process %d exited normally with status %i\n", pid, status);
-
-	return;
 }
