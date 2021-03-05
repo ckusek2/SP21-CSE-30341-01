@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <inttypes.h>
 #include <sys/signal.h>
+#include <time.h>
 
 // Declare functions
 void commandHandler(char *command);
@@ -187,5 +188,63 @@ void killC(char *command){
 
 }
 void bound(char *command){
+	
+	time_t start, current;
+
+	// Get bound time
+	command = strtok(NULL, " ");
+	int boundTime = atoi(command);
+
+	// Get command name
+	command = strtok(NULL, " ");
+	char *execCommand = command;
+
+	// Add arguments to a null-terminated array
+	char *args[1000];
+	int index = 0;
+	while(command != NULL){
+		args[index++] = command;
+		command = strtok(NULL, " ");
+	}		
+	args[index] = NULL;
+
+	pid_t pid;
+	int status;
+	
+	if((pid = fork()) < 0){	// Fork child process
+		printf("Error with fork\n");
+		exit(1);
+	} else if(pid == 0){	// Child process
+		if(execvp(execCommand, args) < 0){	// Execute command
+			printf("Error with execvp\n");
+			exit(1);
+		}
+	} else {
+		// ATTEMPTED USING CLOCK.H, NOT WORKING AS EXPECTED. EXECUTING A SLEEP [BOUND] AND DETECTING WHEN IT'S DONE COULD BE AN ALTERNATIVE.
+		start = clock();
+
+		while(wait(&status) != pid){ // Wait for process to finish
+
+			current = clock();
+			if(((double)(current - start)) / CLOCKS_PER_SEC > (double)boundTime ){
+
+				// Kill process with SIGKILL and check for errors
+				if(kill(pid, SIGKILL)<0){
+					if(errno==ESRCH)	// Process doesn't exist
+						printf("ndshell: No such process\n");
+					else	// Other error
+						printf("Error occurred: %s\n", strerror(errno));
+				} else{		// No errors
+					printf("ndshell: process %d exceeded the time limit, killing it...\n", pid);
+					printf("ndshell: process %d exited abnormally with signal 9: Killed.\n", pid);
+				}
+
+				return;
+			}
+		}
+	}
+	
+	printf("ndshell: process %d exited normally with status %i\n", pid, status);
+
 	return;
 }
