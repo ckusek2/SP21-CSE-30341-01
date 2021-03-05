@@ -224,7 +224,7 @@ void bound(char *command){
 		// ATTEMPTED USING CLOCK.H, NOT WORKING AS EXPECTED. EXECUTING A SLEEP [BOUND] AND DETECTING WHEN IT'S DONE COULD BE AN ALTERNATIVE.
 		start = clock();
 
-		while(wait(&status) != pid){ // Wait for process to finish
+		while(1){ // Wait for process to finish
 
 			current = clock();
 			if(((double)(current - start)) / CLOCKS_PER_SEC > (double)boundTime ){
@@ -242,6 +242,8 @@ void bound(char *command){
 
 				return;
 			}
+			if(waitpid(pid, &status, WNOHANG) != 0)
+				break;
 		}
 	}
 	
