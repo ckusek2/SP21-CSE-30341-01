@@ -15,6 +15,7 @@
 void commandHandler(char *command);
 void start(char *command);
 void waitC();
+void waitHandler();
 void waitfor(char *command);
 void run(char *command);
 void killC(char *command);
@@ -94,8 +95,27 @@ void start(char *command){
 }
 
 void waitC(){
-	
-	return;
+
+	// Sleep until a process interrupts	
+	signal(SIGCHLD, waitHandler);
+	sleep(1000);
+}
+
+void waitHandler(){
+
+	pid_t pid = 0;	// waitpid() needs pid to be initialized
+	int status;
+
+	// Get exit status and pid from finished process
+	pid = waitpid(pid, &status, 0);
+
+	// Test exit status and print results
+	if(WIFEXITED(status)){
+		int exitStatus = WEXITSTATUS(status);
+		printf("ndshell: process %d exited normally with status %i\n", pid, exitStatus);
+	} else {
+		printf("ndshell: process %d exited abnormally with signal %i: %s\n", pid, status, strerror(status));
+	}
 }
 
 void waitfor(char *command){
