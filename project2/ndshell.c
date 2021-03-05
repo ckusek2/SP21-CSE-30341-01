@@ -195,6 +195,13 @@ void bound(char *command){
 	// Get bound time
 	command = strtok(NULL, " ");
 	int boundTime = atoi(command);
+	
+	// atoi() of a string will return 0, so report error
+	// ALso, a bound time > 0 is wanted to make things easier
+	if(boundTime <= 0){
+		printf("ndshell: Enter a non-zero, positive number for bound time. Usage: \"bound [num] [command]\"\n");
+		return;
+	}
 
 	// Get command name
 	command = strtok(NULL, " ");
