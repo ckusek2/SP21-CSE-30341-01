@@ -15,7 +15,6 @@
 void commandHandler(char *command);
 void start(char *command);
 void waitC();
-void waitHandler();
 void waitfor(char *command);
 void run(char *command);
 void killC(char *command);
@@ -60,7 +59,7 @@ void commandHandler(char *command){
 	else if(strcmp(command,"bound") == 0)
 		bound(command);
 	else{
-		printf("ndshell: unknown command: %s", command);
+		printf("ndshell: unknown command: %s\n", command);
 	}
 }
 
@@ -95,27 +94,14 @@ void start(char *command){
 }
 
 void waitC(){
-
-	// Sleep until a process interrupts	
-	signal(SIGCHLD, waitHandler);
-	sleep(1000);
-}
-
-void waitHandler(){
-
-	pid_t pid = 0;	// waitpid() needs pid to be initialized
-	int status;
-
-	// Get exit status and pid from finished process
-	pid = waitpid(pid, &status, 0);
-
-	// Test exit status and print results
-	if(WIFEXITED(status)){
-		int exitStatus = WEXITSTATUS(status);
-		printf("ndshell: process %d exited normally with status %i\n", pid, exitStatus);
-	} else {
-		printf("ndshell: process %d exited abnormally with signal %i: %s\n", pid, status, strerror(status));
+	
+	int status;	
+	pid_t pid = wait(&status); // Wait for next child process.
+	if(pid < 0){ // (If there is no child process waiting to be completed)
+		printf("ndshell: No children.\n");
+		return;
 	}
+	printf("ndshell: process %d exited normally with status %i\n", pid, status);
 }
 
 void waitfor(char *command){
@@ -205,6 +191,7 @@ void killC(char *command){
 			printf("Error occurred: %s\n", strerror(errno));
 	} else{		// No errors
 		printf("ndshell: process %d exited abnormally with signal 9: Killed.\n", pid);
+		wait(NULL); // Ensure process ends and it's not detected in wait()
 	}
 }
 
@@ -217,7 +204,7 @@ void bound(char *command){
 	int boundTime = atoi(command);
 	
 	// atoi() of a string will return 0, so report error
-	// ALso, a bound time > 0 is wanted to make things easier
+	// Also, a bound time > 0 is wanted to make things easier
 	if(boundTime <= 0){
 		printf("ndshell: Enter a non-zero, positive number for bound time. Usage: \"bound [num] [command]\"\n");
 		return;
@@ -265,8 +252,8 @@ void bound(char *command){
 				} else{		// No errors
 					printf("ndshell: process %d exceeded the time limit, killing it...\n", pid);
 					printf("ndshell: process %d exited abnormally with signal 9: Killed.\n", pid);
+					wait(NULL); // Ensure process ends and it's not detected in wait()
 				}
-
 				return;
 			}
 
