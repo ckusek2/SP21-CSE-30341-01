@@ -68,6 +68,12 @@ void start(char *command){
 	// Get command name
 	command = strtok(NULL, " ");
 	char *execCommand = command;
+	
+	// Check for correct usage
+	if(!execCommand){
+		printf("ndshell: Incorrect usage of start. Usage: start [commands]\n");
+		return;
+	}
 
 	// Add arguments to a null-terminated array
 	char *args[1000];
@@ -139,6 +145,12 @@ void run(char *command){
 	command = strtok(NULL, " ");
 	char *execCommand = command;
 
+	// Check for correct usage
+	if(!execCommand){
+		printf("ndshell: Incorrect usage of run. Usage: run [commands]\n");
+		return;
+	}
+
 	// Add arguments to a null-terminated array
 	char *args[1000];
 	int index = 0;
@@ -201,6 +213,13 @@ void bound(char *command){
 
 	// Get bound time
 	command = strtok(NULL, " ");
+
+	// Ensure the user entered a bound time.	
+	if(!command){
+		printf("ndshell: Enter a non-zero, positive number for bound time. Usage: \"bound [num] [command]\"\n");
+		return;
+	}
+
 	int boundTime = atoi(command);
 	
 	// atoi() of a string will return 0, so report error
@@ -210,9 +229,16 @@ void bound(char *command){
 		return;
 	}
 
+
 	// Get command name
 	command = strtok(NULL, " ");
 	char *execCommand = command;
+	
+	// Make sure there is a command to be executed
+	if(!execCommand){
+		printf("ndshell: Enter a command to be executed. Usage: \"bound [num] [command]\"\n");
+		return;
+	}
 
 	// Add arguments to a null-terminated array
 	char *args[1000];
