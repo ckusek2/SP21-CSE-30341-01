@@ -1,6 +1,6 @@
 CC= gcc
 CFLAGS= -g -Wall -std=gnu99 -Iinclude
-TARGETS= ndshell
+TARGETS= threadedRE
 
 all: $(TARGETS)
 
@@ -10,8 +10,8 @@ clean:
 
 .PHONY: all test clean
 
-# Rules for proj3
+# Rules for threadedRE
 
-proj3: proj3.o proj3.c
+proj3: threadedRE.o threadedRE.c
 	@echo Compiling $@
 	@$(CC) $(CFLAGS) -o $@ $<
