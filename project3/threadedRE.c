@@ -22,6 +22,7 @@ int gReadSpot;
 // Got this stuff from the panopto video from 5 days ago
 char PutInBuffer(struct PacketHolder ItemToPut);
 
+/*
 void* producerThread(void* pArgs){
 
 	// Open file and check it
@@ -38,7 +39,7 @@ void* producerThread(void* pArgs){
 
 		PutInBuffer(theHolder);
 	}
-}
+}*/
 
 // Got this from the panopto video from 3 days ago
 // Hash value calculator
@@ -63,7 +64,7 @@ uint32_t computeHash(char* pData, int nSize){
 // I think we also need to make a thread for input/output
 int main(int argc, char *argv[]){
 
-	printf("Welcome to Project 3 - ThreadRE by Calvin Kusek, Dalton Dove, and Rafael Mendizabal");
+	printf("Welcome to Project 3 - ThreadRE by Calvin Kusek, Dalton Dove, and Rafael Mendizabal \n");
 
 	int fileStart;	// Index in argv where names of files start
 	if(strcmp(argv[1], "-thread") == 0){
@@ -73,9 +74,13 @@ int main(int argc, char *argv[]){
 		fileStart = 1;
 
 	struct stat stats;
-	for(int start = fileStart; fileStart < argc; start++){
-		stat(argv[start], &stats);
-		// I think we can use stats.st_mode to make sure the file is a .pcap file
+	int status;
+
+	for(int start = fileStart; start < argc; start++){
+		status = stat(argv[start], &stats);
+		if(status < 0) // Make sure the file exists. For now we can assume we are actually gonna give it a .pcap file.
+			printf("%s does not exist. \n", argv[start]);
+		// I think we can use stats.st_mode to make sure the file is a .pcap file. EDIT: We can just check the string for .pcap (if it exists).
 		// If it is a pcap file, do stuff with it lol
 	}
 }
