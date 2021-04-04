@@ -4,8 +4,13 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <limits.h>
 
-// Global variables
 struct PacketHolder{
 	int theSize;
 	char *pPayload;
@@ -13,33 +18,49 @@ struct PacketHolder{
 	int hitCount;
 };
 
+// Global Variables
 int numCores = 8;	// need to find out optimal number of threads
 struct PacketHolder gBuffer[10];	// will be 10 or less files processed
 int gWriteSpot;
 int gReadSpot;
+int skip = 54; // The # of bytes to be skipped 
+
 // add hash table
 
 // Got this stuff from the panopto video from 5 days ago
 char PutInBuffer(struct PacketHolder ItemToPut);
 
-/*
 void* producerThread(void* pArgs){
 
 	// Open file and check it
-	
-	while(LoopToEndOfFile){	// If we use fgets, I think we can just say while fgets() != NULL
+	FILE *fp;
+	char str[54];
 
-		struct PacketHolder theHolder;
-		int nBytesRead;
+	fp = fopen(pArgs, "r");
+
+	if(fp == NULL){
+		printf("Unable to open %s: %s\n", pArgs, strerror(errno));
+		exit(1);	// exit
+	}
+
+	// I think we need to switch this up so it's more "bits-oriented"
+	while(fgets(str, 54, fp) != NULL){	// If we use fgets, I think we can just say while fgets() != NULL
+
+		//struct PacketHolder theHolder;
+		//int nBytesRead;
 
 		// I believe we need a malloc here
 
-		nBytesRead = fread(pFile, theHolder->pPayload, ...);
-		theHolder.theSize = nBytesRead;
+		//nBytesRead = fread(pFile, theHolder->pPayload, ...);
+		//theHolder.theSize = nBytesRead;
 
-		PutInBuffer(theHolder);
+		//PutInBuffer(theHolder);
 	}
-}*/
+	
+	// Closing file that was being read
+	fclose(fp);	
+	return 1;
+}
 
 // Got this from the panopto video from 3 days ago
 // Hash value calculator
@@ -82,5 +103,6 @@ int main(int argc, char *argv[]){
 			printf("%s does not exist. \n", argv[start]);
 		// I think we can use stats.st_mode to make sure the file is a .pcap file. EDIT: We can just check the string for .pcap (if it exists).
 		// If it is a pcap file, do stuff with it lol
+		producerThread(argv[start]);
 	}
 }
