@@ -6,18 +6,18 @@
 #include <sys/stat.h>
 
 // Global variables
-int numCores = 8;	// need to find out optimal number of threads
-struct PacketHolder gBuffer[10];	// will be 10 or less files processed
-int gWriteSpot;
-int gReadSpot;
-// add hash table
-
 struct PacketHolder{
 	int theSize;
 	char *pPayload;
 	uint32_t hashValue;
 	int hitCount;
 };
+
+int numCores = 8;	// need to find out optimal number of threads
+struct PacketHolder gBuffer[10];	// will be 10 or less files processed
+int gWriteSpot;
+int gReadSpot;
+// add hash table
 
 // Got this stuff from the panopto video from 5 days ago
 char PutInBuffer(struct PacketHolder ItemToPut);
@@ -63,6 +63,8 @@ uint32_t computeHash(char* pData, int nSize){
 // I think we also need to make a thread for input/output
 int main(int argc, char *argv[]){
 
+	printf("Welcome to Project 3 - ThreadRE by Calvin Kusek, Dalton Dove, and Rafael Mendizabal");
+
 	int fileStart;	// Index in argv where names of files start
 	if(strcmp(argv[1], "-thread") == 0){
 		numCores = atoi(argv[2]);
@@ -71,8 +73,8 @@ int main(int argc, char *argv[]){
 		fileStart = 1;
 
 	struct stat stats;
-	for(fileStart; fileStart < argc; fileStart++){
-		stat(argv[fileStart], &stats);
+	for(int start = fileStart; fileStart < argc; start++){
+		stat(argv[start], &stats);
 		// I think we can use stats.st_mode to make sure the file is a .pcap file
 		// If it is a pcap file, do stuff with it lol
 	}
