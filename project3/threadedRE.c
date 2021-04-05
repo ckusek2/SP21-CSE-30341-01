@@ -42,7 +42,7 @@ void* producerThread(void* pArgs){
 		printf("Unable to open %s: %s\n", pArgs, strerror(errno));
 		exit(1);	// exit
 	}
-
+	
 	// I think we need to switch this up so it's more "bits-oriented"
 	while(fgets(str, 54, fp) != NULL){	// If we use fgets, I think we can just say while fgets() != NULL
 
@@ -55,6 +55,7 @@ void* producerThread(void* pArgs){
 		//theHolder.theSize = nBytesRead;
 
 		//PutInBuffer(theHolder);
+		printf("%s\n", str);
 	}
 	
 	// Closing file that was being read
@@ -62,7 +63,6 @@ void* producerThread(void* pArgs){
 	return 1;
 }
 
-// Got this from the panopto video from 3 days ago
 // Hash value calculator
 uint32_t computeHash(char* pData, int nSize){
 
