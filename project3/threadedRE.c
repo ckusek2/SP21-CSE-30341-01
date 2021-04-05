@@ -11,6 +11,9 @@
 #include <dirent.h>
 #include <limits.h>
 
+typedef unsigned int guint32; 
+typedef unsigned short guint16;
+
 struct PacketHolder{
 	int theSize;
 	char *pPayload;
@@ -44,7 +47,7 @@ void* producerThread(void* pArgs){
 	}
 	
 	// I think we need to switch this up so it's more "bits-oriented"
-	while(fgets(str, 54, fp) != NULL){	// If we use fgets, I think we can just say while fgets() != NULL
+	//while(fgets(str, 54, fp) != NULL){	// If we use fgets, I think we can just say while fgets() != NULL
 
 		//struct PacketHolder theHolder;
 		//int nBytesRead;
@@ -55,11 +58,17 @@ void* producerThread(void* pArgs){
 		//theHolder.theSize = nBytesRead;
 
 		//PutInBuffer(theHolder);
-		printf("%s\n", str);
-	}
+	//}
 	
+	// This is how we read all the variables from the pcap global header starting with magic number
+	guint32 variable;
+	for(int i = 0; i < 10; i++){
+		fread((void*)&variable, 4, 1, fp);
+		printf("%x\n", variable);
+	}
+
 	// Closing file that was being read
-	fclose(fp);	
+	fclose(fp);
 	return 1;
 }
 
