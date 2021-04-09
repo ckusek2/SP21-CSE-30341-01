@@ -50,8 +50,8 @@ void* producerThread(void* pArgs){
 	guint32 magicNumber;
 	fread((void*)&magicNumber, 4, 1, fp);
 	if(magicNumber == 0xd4c3b2a1){
-		printf("Not a pcap file \n");
-		//exit?
+		printf("Not a valid pcap file \n");
+		exit(1);
 	}
 	
 	// This is how we read all the variables from the pcap global header	
@@ -91,13 +91,14 @@ void* producerThread(void* pArgs){
 		fread(theHolder.pPayload, 1, theHolder.theSize, fp);
 		
 		printf("%i\n", theHolder.theSize); // Here for debugging purposes
+		printf("%s\n", theHolder.pPayload);	// Here for debugging purposes
 		
 		//PutInBuffer(theHolder);
 	}
 
 	// Closing file that was being read
 	fclose(fp);
-	return 1;
+
 }
 
 // Hash value calculator
@@ -135,11 +136,13 @@ int main(int argc, char *argv[]){
 	int status;
 
 	for(int start = fileStart; start < argc; start++){
-		status = stat(argv[start], &stats);
+		char *inputFile = argv[start];
+		status = stat(inputFile, &stats);
 		if(status < 0) // Make sure the file exists. For now we can assume we are actually gonna give it a .pcap file.
-			printf("%s does not exist. \n", argv[start]);
+			printf("%s does not exist. \n", inputFile);
 		// I think we can use stats.st_mode to make sure the file is a .pcap file. EDIT: We can just check the string for .pcap (if it exists).
 		// If it is a pcap file, do stuff with it lol
-		producerThread(argv[start]);
+		if(strstr(inputFile, ".pcap"))
+			producerThread(inputFile);
 	}
 }
