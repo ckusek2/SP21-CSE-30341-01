@@ -13,6 +13,7 @@
 
 typedef unsigned int guint32; 
 typedef unsigned short guint16;
+typedef signed int gint32;
 
 struct PacketHolder{
 	int theSize;
@@ -37,7 +38,6 @@ void* producerThread(void* pArgs){
 
 	// Open file and check it
 	FILE *fp;
-	char str[54];
 
 	fp = fopen(pArgs, "r");
 
@@ -45,26 +45,54 @@ void* producerThread(void* pArgs){
 		printf("Unable to open %s: %s\n", pArgs, strerror(errno));
 		exit(1);	// exit
 	}
+
+	// Check magic number to make sure we are reading a pcap file
+	guint32 magicNumber;
+	fread((void*)&magicNumber, 4, 1, fp);
+	if(magicNumber == 0xd4c3b2a1){
+		printf("Not a pcap file \n");
+		//exit?
+	}
 	
-	// I think we need to switch this up so it's more "bits-oriented"
-	//while(fgets(str, 54, fp) != NULL){	// If we use fgets, I think we can just say while fgets() != NULL
-
-		//struct PacketHolder theHolder;
-		//int nBytesRead;
-
-		// I believe we need a malloc here
-
-		//nBytesRead = fread(pFile, theHolder->pPayload, ...);
-		//theHolder.theSize = nBytesRead;
-
-		//PutInBuffer(theHolder);
-	//}
-	
-	// This is how we read all the variables from the pcap global header starting with magic number
+	// This is how we read all the variables from the pcap global header	
 	guint32 variable;
-	for(int i = 0; i < 10; i++){
-		fread((void*)&variable, 4, 1, fp);
-		printf("%x\n", variable);
+	for(int i = 0; i < 6; i++){
+		if(i == 0 || i == 1)
+			fread((void*)&variable, sizeof(guint16), 1, fp); // 16 bit major and minor numbers
+		else if(i == 2)
+			fread((void*)&variable, sizeof(gint32), 1, fp); // GMT to local correction
+		else
+			fread((void*)&variable, sizeof(guint32), 1, fp); // Other values
+
+		printf("%x\n", variable); // Here for debuggin purposes
+	}
+	
+	int t = 0;
+	// Read packets
+	while(!feof(fp)){	// Until EOF
+
+		guint32 ts_sec;
+		guint32 ts_usec;
+		guint32 incl_len;
+		guint32 origin_len;
+		
+		fread((void*)&ts_sec, 4, 1, fp);
+		fread((void*)&ts_usec, 4, 1, fp);
+		fread((void*)&incl_len, 4, 1, fp);
+		fread((void*)&origin_len, 4, 1, fp);
+
+		struct PacketHolder theHolder;
+
+		// I believe we need a malloc here EDIT: A malloc you will have
+		theHolder.theSize = incl_len;
+		theHolder.pPayload = malloc(theHolder.theSize);
+
+		// Read and store the packet contents
+		fread(theHolder.pPayload, 1, theHolder.theSize, fp);
+		
+		printf("%i\n", theHolder.theSize); // Here for debugging purposes
+		
+		//PutInBuffer(theHolder);
 	}
 
 	// Closing file that was being read
