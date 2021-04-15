@@ -24,7 +24,8 @@ struct PacketHolder{
 
 // Global Variables
 int numCores = 8;	// need to find out optimal number of threads
-struct PacketHolder gBuffer[10];	// will be 10 or less files processed
+struct PacketHolder gBuffer[2000];
+int buffIndex = 0;
 int gWriteSpot;
 int gReadSpot;
 int skip = 54; // The # of bytes to be skipped 
@@ -32,7 +33,10 @@ int skip = 54; // The # of bytes to be skipped
 // add hash table
 
 // Got this stuff from the panopto video from 5 days ago
-char PutInBuffer(struct PacketHolder ItemToPut);
+void PutInBuffer(struct PacketHolder ItemToPut){
+	gBuffer[buffIndex] = ItemToPut;
+	buffIndex += 1;
+}
 
 void* producerThread(void* pArgs){
 
@@ -81,6 +85,7 @@ void* producerThread(void* pArgs){
 		fread((void*)&incl_len, 4, 1, fp);
 		fread((void*)&origin_len, 4, 1, fp);
 
+			
 		struct PacketHolder theHolder;
 
 		// I believe we need a malloc here EDIT: A malloc you will have
@@ -90,10 +95,9 @@ void* producerThread(void* pArgs){
 		// Read and store the packet contents
 		fread(theHolder.pPayload, 1, theHolder.theSize, fp);
 		
-		printf("%i\n", theHolder.theSize); // Here for debugging purposes
-		printf("%s\n", theHolder.pPayload);	// Here for debugging purposes
-		
-		//PutInBuffer(theHolder);
+		if(theHolder.theSize >= 128){
+			PutInBuffer(theHolder);
+		}
 	}
 
 	// Closing file that was being read
@@ -144,5 +148,10 @@ int main(int argc, char *argv[]){
 		// If it is a pcap file, do stuff with it lol
 		if(strstr(inputFile, ".pcap"))
 			producerThread(inputFile);
+	}
+
+	for(int i = 0; i < buffIndex; i++){
+		printf("%i\n", gBuffer[i].theSize);
+		printf("%s\n", gBuffer[i].pPayload);
 	}
 }
