@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <limits.h>
+#include <pthread.h>
 
 typedef unsigned int guint32; 
 typedef unsigned short guint16;
@@ -24,18 +25,27 @@ struct PacketHolder{
 
 // Global Variables
 int numCores = 8;	// need to find out optimal number of threads
-struct PacketHolder gBuffer[2000];
-int buffIndex = 0;
-int gWriteSpot;
-int gReadSpot;
+struct PacketHolder gBuffer[10];
+int gWriteSpot = 0;
+int gReadSpot = 0;
 int skip = 54; // The # of bytes to be skipped 
+pthread_mutex_t mutex;
+pthread_cond_t readFrom;
+pthread_cond_t putIn;
 
 // add hash table
 
-// Got this stuff from the panopto video from 5 days ago
+
+
+
 void PutInBuffer(struct PacketHolder ItemToPut){
-	gBuffer[buffIndex] = ItemToPut;
-	buffIndex += 1;
+	gBuffer[gWriteSpot] = ItemToPut;
+	gWriteSpot = (gWriteSpot + 1) % 10;	// creates bounded buffer because doesn't allow gWriteSpot to go over 10
+}
+
+void ReadFromBuffer(struct PacketHolder *ReadItem){ 
+	*ReadItem = gBuffer[gReadSpot];
+	gReadSpot = (gReadSpot + 1) % 10;	// same as for PutInBuffer, buffer has a size of 10 so can't go over that
 }
 
 void* producerThread(void* pArgs){
@@ -46,7 +56,7 @@ void* producerThread(void* pArgs){
 	fp = fopen(pArgs, "r");
 
 	if(fp == NULL){
-		printf("Unable to open %s: %s\n", pArgs, strerror(errno));
+		printf("Unable to open %c: %s\n", *(char*)pArgs, strerror(errno));
 		exit(1);	// exit
 	}
 
@@ -71,7 +81,6 @@ void* producerThread(void* pArgs){
 		printf("%x\n", variable); // Here for debuggin purposes
 	}
 	
-	int t = 0;
 	// Read packets
 	while(!feof(fp)){	// Until EOF
 
@@ -88,7 +97,6 @@ void* producerThread(void* pArgs){
 			
 		struct PacketHolder theHolder;
 
-		// I believe we need a malloc here EDIT: A malloc you will have
 		theHolder.theSize = incl_len;
 		theHolder.pPayload = malloc(theHolder.theSize);
 
@@ -96,13 +104,31 @@ void* producerThread(void* pArgs){
 		fread(theHolder.pPayload, 1, theHolder.theSize, fp);
 		
 		if(theHolder.theSize >= 128){
-			PutInBuffer(theHolder);
+			pthread_mutex_lock(&mutex);	// lock mutex
+			pthread_cond_wait(&readFrom, &mutex);	// wait to see if consumer thread is reading from the buffer
+			PutInBuffer(theHolder);	// put theHolder in the bounded buffer
+			pthread_cond_broadcast(&putIn);	// broadcast to all consumer threads that theHolder has been added to the buffer
+			pthread_mutex_unlock(&mutex);	// unlock mutex
 		}
 	}
 
 	// Closing file that was being read
 	fclose(fp);
 
+}
+
+void* consumerThread(){
+
+	struct PacketHolder theHolder;
+
+	pthread_mutex_lock(&mutex);	// lock mutex
+	pthread_cond_wait(&putIn, &mutex);	// wait to see if the producer thread is putting anything in buffer
+	ReadFromBuffer(&theHolder);	// read a PacketHolder from the bounded buffer, pass by reference to update theHolder
+	pthread_cond_signal(&readFrom);	// signal to the producer thread that something has been taken from the buffer
+	pthread_mutex_unlock(&mutex);	// unlock mutex
+
+	// now we just need to compute the hash and add data to hash table
+	// also need to add a hash table
 }
 
 // Hash value calculator
@@ -124,7 +150,6 @@ uint32_t computeHash(char* pData, int nSize){
 	return hash;
 }
 
-// I think we also need to make a thread for input/output
 int main(int argc, char *argv[]){
 
 	printf("Welcome to Project 3 - ThreadRE by Calvin Kusek, Dalton Dove, and Rafael Mendizabal \n");
@@ -134,7 +159,7 @@ int main(int argc, char *argv[]){
 		numCores = atoi(argv[2]);
 		fileStart = 3;	// file names start at argv[3]
 	} else
-		fileStart = 1;
+		fileStart = 1; // file names start at argv[1]
 
 	struct stat stats;
 	int status;
@@ -142,16 +167,9 @@ int main(int argc, char *argv[]){
 	for(int start = fileStart; start < argc; start++){
 		char *inputFile = argv[start];
 		status = stat(inputFile, &stats);
-		if(status < 0) // Make sure the file exists. For now we can assume we are actually gonna give it a .pcap file.
+		if(status < 0) // Make sure the file exists
 			printf("%s does not exist. \n", inputFile);
-		// I think we can use stats.st_mode to make sure the file is a .pcap file. EDIT: We can just check the string for .pcap (if it exists).
-		// If it is a pcap file, do stuff with it lol
-		if(strstr(inputFile, ".pcap"))
+		if(strstr(inputFile, ".pcap"))	// Make sure the file is a pcap file
 			producerThread(inputFile);
-	}
-
-	for(int i = 0; i < buffIndex; i++){
-		printf("%i\n", gBuffer[i].theSize);
-		printf("%s\n", gBuffer[i].pPayload);
 	}
 }
