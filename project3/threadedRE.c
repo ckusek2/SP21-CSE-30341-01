@@ -11,32 +11,56 @@
 #include <dirent.h>
 #include <limits.h>
 #include <pthread.h>
+#include <stdbool.h>
 
+// Packet variable definitions
 typedef unsigned int guint32; 
 typedef unsigned short guint16;
 typedef signed int gint32;
 
+// struct for holding packet info
 struct PacketHolder{
 	int theSize;
 	char *pPayload;
-	uint32_t hashValue;
-	int hitCount;
 };
 
 // Global Variables
-int numCores = 8;	// need to find out optimal number of threads
+int numThreads = 8;	// need to find out optimal number of threads
 struct PacketHolder gBuffer[10];
 int gWriteSpot = 0;
 int gReadSpot = 0;
 int skip = 54; // The # of bytes to be skipped 
+int numHits = 0;
+int doneProducing = 0;
 pthread_mutex_t mutex;
 pthread_cond_t readFrom;
 pthread_cond_t putIn;
 
-// add hash table
+// hash table
+struct DataItem {
+	uint32_t hash;
+	int key;
+};
 
+//struct DataItem* hashTable[256];
 
+uint32_t hashTable[256];
 
+// Hash value calculator
+uint32_t computeHash(char* pData, int nSize){
+
+	uint32_t hash = 0;
+	uint32_t *pBlock = (uint32_t *) (pData + 54); // I think pData is a byte array of the info in the packet
+	int nRemaining = nSize - 54;
+
+	while(nRemaining >= 4){
+		hash = hash ^ *pBlock;	// xor hash and pBlock
+		pBlock = pBlock + 1;	// moves pBlock pointer over 4 bytes
+		nRemaining -= 4;
+	}
+
+	return hash;
+}
 
 void PutInBuffer(struct PacketHolder ItemToPut){
 	gBuffer[gWriteSpot] = ItemToPut;
@@ -48,7 +72,7 @@ void ReadFromBuffer(struct PacketHolder *ReadItem){
 	gReadSpot = (gReadSpot + 1) % 10;	// same as for PutInBuffer, buffer has a size of 10 so can't go over that
 }
 
-void* producerThread(void* pArgs){
+void *producerThread(void* pArgs){
 
 	// Open file and check it
 	FILE *fp;
@@ -78,7 +102,7 @@ void* producerThread(void* pArgs){
 		else
 			fread((void*)&variable, sizeof(guint32), 1, fp); // Other values
 
-		printf("%x\n", variable); // Here for debuggin purposes
+		//printf("%x\n", variable); // Here for debuggin purposes
 	}
 	
 	// Read packets
@@ -112,42 +136,33 @@ void* producerThread(void* pArgs){
 		}
 	}
 
+	doneProducing = 1;
+
 	// Closing file that was being read
 	fclose(fp);
 
 }
 
-void* consumerThread(){
+void *consumerThread(){
 
-	struct PacketHolder theHolder;
+	while(doneProducing == 0){
+		struct PacketHolder theHolder;
 
-	pthread_mutex_lock(&mutex);	// lock mutex
-	pthread_cond_wait(&putIn, &mutex);	// wait to see if the producer thread is putting anything in buffer
-	ReadFromBuffer(&theHolder);	// read a PacketHolder from the bounded buffer, pass by reference to update theHolder
-	pthread_cond_signal(&readFrom);	// signal to the producer thread that something has been taken from the buffer
-	pthread_mutex_unlock(&mutex);	// unlock mutex
+		pthread_mutex_lock(&mutex);	// lock mutex
+		pthread_cond_wait(&putIn, &mutex);	// wait to see if the producer thread is putting anything in buffer
+		ReadFromBuffer(&theHolder);	// read a PacketHolder from the bounded buffer, pass by reference to update theHolder
+	
+		uint32_t hash = computeHash(theHolder.pPayload, theHolder.theSize);
+		int key = hash % 256;
+		if(hashTable[key] == 0)
+			hashTable[key] = hash;
+		//else if (memcmp(chashTable[key], hash, sizeof(hashTable[key])) == 0)
+		else if(hashTable[key] == hash)
+			numHits += 1;
 
-	// now we just need to compute the hash and add data to hash table
-	// also need to add a hash table
-}
-
-// Hash value calculator
-uint32_t computeHash(char* pData, int nSize){
-
-	uint32_t hash = 0;
-	uint32_t *pBlock = (uint32_t *) (pData + 54); // I think pData is a byte array of the info in the packet
-	int nRemaining = nSize - 54;
-
-	while(nRemaining > 0){
-		hash = hash ^ *pBlock;	// xor hash and pBlock
-		pBlock = pBlock + 1;	// moves pBlock pointer over 4 bytes
-		nRemaining -= 4;
-
-		if(nRemaining < 4) // not 4 bytes to do xor with
-			break;
+		pthread_cond_signal(&readFrom);	// signal to the producer thread that something has been taken from the buffer
+		pthread_mutex_unlock(&mutex);	// unlock mutex
 	}
-
-	return hash;
 }
 
 int main(int argc, char *argv[]){
@@ -156,20 +171,26 @@ int main(int argc, char *argv[]){
 
 	int fileStart;	// Index in argv where names of files start
 	if(strcmp(argv[1], "-thread") == 0){
-		numCores = atoi(argv[2]);
+		numThreads = atoi(argv[2]);
 		fileStart = 3;	// file names start at argv[3]
 	} else
 		fileStart = 1; // file names start at argv[1]
 
+	for(int i = 0; i < 256; i++)
+		hashTable[i] = 0;
+
 	struct stat stats;
 	int status;
-
+	pthread_t producer;
+	pthread_t consumer;
 	for(int start = fileStart; start < argc; start++){
 		char *inputFile = argv[start];
 		status = stat(inputFile, &stats);
 		if(status < 0) // Make sure the file exists
 			printf("%s does not exist. \n", inputFile);
-		if(strstr(inputFile, ".pcap"))	// Make sure the file is a pcap file
-			producerThread(inputFile);
+		if(strstr(inputFile, ".pcap")) {	// Make sure the file is a pcap file
+			pthread_create(&producer, NULL, &producerThread, inputFile);
+			pthread_create(&consumer, NULL, &consumerThread, NULL);
+		}
 	}
 }
