@@ -11,7 +11,6 @@ clean:
 .PHONY: all test clean
 
 # Rules for threadedRE
-
-proj3: threadedRE.o threadedRE.c
+threadedRE: threadedRE.o threadedRE.c
 	@echo Compiling $@
-	@$(CC) $(CFLAGS) -o $@ $<
+	@$(CC) $(CFLAGS) -o $@ $< -pthread
