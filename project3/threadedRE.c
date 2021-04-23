@@ -40,7 +40,7 @@ pthread_cond_t readFrom;
 pthread_cond_t putIn;
 
 // hash table
-uint32_t hashTable[256];
+uint32_t hashTable[100000];
 
 // Hash value calculator
 uint32_t computeHash(char* pData, int nSize){
@@ -165,7 +165,7 @@ void* consumerThread(){
 			pthread_cond_wait(&putIn, &mutex);	// wait to see if the producer thread is putting anything in buffer
 		ReadFromBuffer(&theHolder);	// read a PacketHolder from the bounded buffer, pass by reference to update theHolder
 		uint32_t hash = computeHash(theHolder.pPayload, theHolder.theSize);
-		int key = hash % 256;
+		int key = hash % 100000;
 		if(hashTable[key] == 0)
 			hashTable[key] = hash;
 		else if(hashTable[key] == hash)
