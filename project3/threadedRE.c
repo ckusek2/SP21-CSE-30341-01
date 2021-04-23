@@ -25,7 +25,7 @@ struct PacketHolder{
 };
 
 // Global Variables
-int numThreads = 3;	// starts at optimal number of threads
+int numThreads = 2;	// starts at optimal number of threads
 struct PacketHolder gBuffer[10];	// buffer for passing packet data between producer and consumers
 int gIndex = 0;	// index the producer/consumers will be using to add to/take from buffer
 int skip = 54; // The # of bytes to be skipped 
@@ -70,7 +70,8 @@ void ReadFromBuffer(struct PacketHolder *ReadItem){
 }
 
 
-void *producerThread(void* pArgs[]){
+void* producerThread(void *p){
+	char **pArgs = p;
 
 	for(int i = fileStart; i < fileEnd; i++){
 		
@@ -141,7 +142,7 @@ void *producerThread(void* pArgs[]){
 					pthread_cond_wait(&readFrom, &mutex);	// wait to see if consumer thread is reading from the buffer
 				totalUsedPackages += 1;
 				PutInBuffer(theHolder);	// put theHolder in the bounded buffer
-				pthread_cond_signal(&putIn);	// broadcast to all consumer threads that theHolder has been added to the buffer
+				pthread_cond_broadcast(&putIn);	// broadcast to all consumer threads that theHolder has been added to the buffer
 				pthread_mutex_unlock(&mutex);	// unlock mutex
 			}
 		}
@@ -154,7 +155,7 @@ void *producerThread(void* pArgs[]){
 }
 
 
-void *consumerThread(){
+void* consumerThread(){
 
 	while(doneProducing == 0){
 		struct PacketHolder theHolder;
@@ -167,7 +168,6 @@ void *consumerThread(){
 		int key = hash % 256;
 		if(hashTable[key] == 0)
 			hashTable[key] = hash;
-		//else if (memcmp(chashTable[key], hash, sizeof(hashTable[key])) == 0)
 		else if(hashTable[key] == hash)
 			numHits += 1;
 
