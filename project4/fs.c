@@ -41,14 +41,41 @@ int fs_format()
 
 void fs_debug()
 {
+	// declaring unions
 	union fs_block block;
+	union fs_block iNodeBlock;
 
 	disk_read(0,block.data);
 
+	// printing superblock information
 	printf("superblock:\n");
-	printf("    %d blocks\n",block.super.nblocks);
-	printf("    %d inode blocks\n",block.super.ninodeblocks);
-	printf("    %d inodes\n",block.super.ninodes);
+	if(block.super.magic == FS_MAGIC)
+		printf("    magic number is valid\n");
+	printf("    %d blocks on disk\n",block.super.nblocks);
+	printf("    %d blocks for inodes\n",block.super.ninodeblocks);
+	printf("    %d inodes total\n",block.super.ninodes);
+
+	disk_read(1, iNodeBlock.data);
+
+	for(int i = 0; i < POINTERS_PER_INODE; i++){
+		if(iNodeBlock.inode[i].isvalid){
+			printf("inode %d:\n", i);
+			printf("    size: %d bytes\n", iNodeBlock.inode[i].size);
+			
+			printf("    direct blocks: ");
+			for(int j = 0; j < POINTERS_PER_INODE; j++){
+				if(iNodeBlock.inode[i].direct[j])
+					printf("%d ", iNodeBlock.inode[i].direct[j]);
+			}
+			printf("\n");
+
+			int indirect = iNodeBlock.inode[i].indirect;
+			if(indirect){
+				printf("    indirect block: %d\n", iNodeBlock.inode[i].indirect);
+
+			}
+		}
+	}
 }
 
 int fs_mount()
