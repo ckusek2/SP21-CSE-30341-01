@@ -99,6 +99,54 @@ void fs_debug()
 
 int fs_mount()
 {
+	// declaring unions
+	union fs_block block;
+	union fs_block iNodeBlock;
+	union fs_block indirectBlock;
+	int bitMap[SIZE_MAX] = {0};
+
+	// load disk block 0
+	disk_read(0,block.data);
+
+	// printing superblock information
+	if(block.super.magic == FS_MAGIC){
+		
+		// load disk block 1
+		disk_read(1, iNodeBlock.data);
+
+		for(int i = 0; i < POINTERS_PER_INODE; i++){
+			// make sure inode is valid
+			if(iNodeBlock.inode[i].isvalid){
+				
+				int nodeSize = iNodeBlock.inode[i].size;
+				int numBlock = 0;
+				while(nodeSize > 0){
+					nodeSize -= 4096;
+					if(numBlock <= 4){
+						bitMap[iNodeBlock.inode[i].direct[numBlock]] = 1;
+					} else {
+						//indirect suff
+
+
+			int indirect = iNodeBlock.inode[i].indirect;
+			// check if indirect block is 0
+			if(indirect){
+				// print indirect block number
+				printf("    indirect block: %d\n", iNodeBlock.inode[i].indirect);
+
+				// print indirect data blocks
+				printf("    indirect data blocks: ");
+				// load disk block of indirect disk
+				disk_read(indirect, indirectBlock.data);
+				// go through pointers on indirect block and print non-zero pointer values
+				for(int pointer = 0; pointer < POINTERS_PER_BLOCK; pointer++){
+					if(indirectBlock.pointers[pointer])
+						printf("%d ", indirectBlock.pointers[pointer]);
+				}
+				printf("\n");
+			}
+		}
+	}
 	return 0;
 }
 
