@@ -182,6 +182,33 @@ int fs_mount()
 
 int fs_create()
 {
+
+	// declaring unions
+	union fs_block block;
+	union fs_block iNodeBlock;	
+
+	// load disk block 0
+	disk_read(0,block.data);
+
+	// Make sure inode can be created
+	if(block.super.magic == FS_MAGIC){
+
+		disk_read(1, iNodeBlock.data);
+
+		// Go through inodes and find available one
+		for(int i = 1; i < POINTERS_PER_INODE; i++){
+			
+			// If inode is not valid, create it with zero length
+			if(!iNodeBlock.inode[i].isvalid){
+
+				iNodeBlock.inode[i].isvalid = 1;
+				iNodeBlock.inode[i].size = 0;
+				disk_write(1, iNodeBlock.data);
+				return i;
+			}
+		}
+	}
+
 	return 0;
 }
 
