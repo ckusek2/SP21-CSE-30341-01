@@ -14,6 +14,7 @@
 #define POINTERS_PER_BLOCK 1024
 
 int bitMap[10000] = {0};
+int mounted = 0;
 
 struct fs_superblock {
 	int magic;
@@ -40,10 +41,8 @@ int fs_format()
 {
 
 	// Checking if fs is mounted already
-	for(int i = 0; i < 10000; i++){
-		if(bitMap[i] == 1)
-			return 0;
-	}
+	if(mounted == 1)
+		return 0;
 
 	union fs_block block;
 	union fs_block iNodeBlock;
@@ -177,11 +176,16 @@ int fs_mount()
 		}
 	} else { return 0; } // filesystem not present, fail
 
+	mounted = 1;
 	return 1;
 }
 
 int fs_create()
 {
+
+	// Make sure filesystem is mounted
+	if(mounted == 0)
+		return 0;
 
 	// declaring unions
 	union fs_block block;
@@ -214,6 +218,41 @@ int fs_create()
 
 int fs_delete( int inumber )
 {
+
+	// Make sure filesystem is mounted
+	if(mounted == 0)
+		return 0;
+
+	// declaring unions
+	union fs_block block;
+	union fs_block iNodeBlock;	
+
+	// load disk block 0
+	disk_read(0,block.data);
+
+	// Make sure inode can be deleted
+	if(block.super.magic == FS_MAGIC){
+
+		disk_read(1, iNodeBlock.data);
+			
+		// Make sure inode is valid for deletion
+		if(iNodeBlock.inode[inumber].isvalid){
+
+			iNodeBlock.inode[inumber].isvalid = 0;
+			iNodeBlock.inode[inumber].size = 0;
+			iNodeBlock.inode[inumber].indirect = 0;
+			// Make all direct blocks and bitmap for those blocks zero
+			for(int i = 0; i < POINTERS_PER_INODE; i++){
+				
+				bitMap[iNodeBlock.inode[inumber].direct[i]] = 0;
+				iNodeBlock.inode[inumber].direct[i] = 0;
+
+			}
+			disk_write(1, iNodeBlock.data);
+			return 1;
+		} 
+	}
+
 	return 0;
 }
 
