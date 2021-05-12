@@ -258,6 +258,29 @@ int fs_delete( int inumber )
 
 int fs_getsize( int inumber )
 {
+
+	// Make sure filesystem is mounted
+	if(mounted == 0)
+		return -1;
+
+	// declaring unions
+	union fs_block block;
+	union fs_block iNodeBlock;	
+
+	// load disk block 0
+	disk_read(0,block.data);
+
+	// Make sure inode can be read
+	if(block.super.magic == FS_MAGIC){
+
+		disk_read(1, iNodeBlock.data);
+			
+		// Make sure inode is valid for reading
+		if(iNodeBlock.inode[inumber].isvalid){
+			return iNodeBlock.inode[inumber].size;
+		}
+	}
+
 	return -1;
 }
 
