@@ -13,6 +13,8 @@
 #define POINTERS_PER_INODE 5
 #define POINTERS_PER_BLOCK 1024
 
+int bitMap[10000] = {0};
+
 struct fs_superblock {
 	int magic;
 	int nblocks;
@@ -36,7 +38,35 @@ union fs_block {
 
 int fs_format()
 {
-	return 0;
+
+	// Checking if fs is mounted already
+	for(int i = 0; i < 10000; i++){
+		if(bitMap[i] == 1)
+			return 0;
+	}
+
+	union fs_block block;
+	union fs_block iNodeBlock;
+
+	disk_read(0, block.data);
+
+	block.super.magic = FS_MAGIC;
+	block.super.nblocks = disk_size();
+	block.super.ninodeblocks = 0.1 * disk_size();
+	block.super.ninodes = 0.1 * disk_size() * INODES_PER_BLOCK;
+
+	disk_write(0, block.data);
+
+	disk_read(1, iNodeBlock.data);
+
+	// Setting indoes on fs to invalid
+	for(int i = 0; i < INODES_PER_BLOCK; i++){
+		iNodeBlock.inode[i].isvalid = 0;
+	}
+
+	disk_write(1, iNodeBlock.data);
+		
+	return 1;
 }
 
 void fs_debug()
@@ -102,8 +132,7 @@ int fs_mount()
 	// declaring unions
 	union fs_block block;
 	union fs_block iNodeBlock;
-	union fs_block indirectBlock;
-	int bitMap[SIZE_MAX] = {0};
+	union fs_block indirectBlock;	
 
 	// load disk block 0
 	disk_read(0,block.data);
@@ -116,38 +145,39 @@ int fs_mount()
 
 		for(int i = 0; i < POINTERS_PER_INODE; i++){
 			// make sure inode is valid
-			if(iNodeBlock.inode[i].isvalid){
-				
+			if(iNodeBlock.inode[i].isvalid){	
+
+				// Get size of inode
 				int nodeSize = iNodeBlock.inode[i].size;
 				int numBlock = 0;
+		
 				while(nodeSize > 0){
 					nodeSize -= 4096;
+					// Checks if it is a direct or indirect block
 					if(numBlock <= 4){
 						bitMap[iNodeBlock.inode[i].direct[numBlock]] = 1;
 					} else {
-						//indirect suff
-
-
-			int indirect = iNodeBlock.inode[i].indirect;
-			// check if indirect block is 0
-			if(indirect){
-				// print indirect block number
-				printf("    indirect block: %d\n", iNodeBlock.inode[i].indirect);
-
-				// print indirect data blocks
-				printf("    indirect data blocks: ");
-				// load disk block of indirect disk
-				disk_read(indirect, indirectBlock.data);
-				// go through pointers on indirect block and print non-zero pointer values
-				for(int pointer = 0; pointer < POINTERS_PER_BLOCK; pointer++){
-					if(indirectBlock.pointers[pointer])
-						printf("%d ", indirectBlock.pointers[pointer]);
+						int indirect = iNodeBlock.inode[i].indirect;
+						// check if indirect block is 0
+						if(indirect){
+							bitMap[indirect] = 1;
+							disk_read(indirect, indirectBlock.data);
+							// Loop over indirect pointers
+							for(int pointer = 0; pointer < POINTERS_PER_BLOCK && nodeSize > 0; pointer++){
+								nodeSize -= 4096;
+								// Check if pointer is valid
+								if(indirectBlock.pointers[pointer])
+									bitMap[indirectBlock.pointers[pointer]] = 1;
+							}
+						}		
+					}
+					numBlock += 1;
 				}
-				printf("\n");
 			}
 		}
-	}
-	return 0;
+	} else { return 0; } // filesystem not present, fail
+
+	return 1;
 }
 
 int fs_create()
