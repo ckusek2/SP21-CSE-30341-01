@@ -294,6 +294,15 @@ int fs_read( int inumber, char *data, int length, int offset )
 	// declaring unions
 	union fs_block block;
 	union fs_block iNodeBlock;	
+	union fs_block inode;
+	union fs_block indirectBlock;
+
+	// declaring reference variables
+	int len = length;
+	int start = 0;
+	int data_ptr = 0;
+	int sofar = 20000;
+
 
 	// load disk block 0
 	disk_read(0,block.data);
@@ -301,22 +310,54 @@ int fs_read( int inumber, char *data, int length, int offset )
 	// Make sure inode can be read
 	if(block.super.magic == FS_MAGIC){
 
-		disk_read(inumber, iNodeBlock.data);
+		disk_read(1, iNodeBlock.data);
 			
 		// Make sure inode is valid for reading
 		if(iNodeBlock.inode[inumber].isvalid){
-			
-			for(int i = offset; i < (offset + length); i++){
-
-				data[i - offset] = iNodeBlock.data[i];
+			// Make sure offset starts in direct nodes
+			if(offset < POINTERS_PER_INODE * 4000){
+				for(int i = 0; i < POINTERS_PER_INODE; i++){
+					disk_read(iNodeBlock.inode[inumber].direct[i], inode.data);
+					for(int j = i * 4000; j < ((i+1)*4000); j++){
+						if(j == offset) 
+							start = 1;
+						if(start){
+							data[data_ptr] = inode.data[j%4000];
+							data_ptr++;
+							len -= 1;
+							if(len <= 0)
+								start = 0;
+						}
+					}
+				}
+			}
+			int indirect = iNodeBlock.inode[inumber].indirect; 
+			if(indirect && len > 0){
+				disk_read(indirect, indirectBlock.data);
+				// go through pointers on indirect block and print non-zero pointer values
+				for(int pointer = 0; pointer < POINTERS_PER_BLOCK; pointer++){
+					if(indirectBlock.pointers[pointer]){
+						for(int i = 0; i < 4000; i++){
+							if(sofar == offset)
+								start = 1;
+							if(start){
+								data[data_ptr] = indirectBlock.data[sofar%4000];
+								data_ptr++;
+								len -= 1;
+								if(len <= 0)
+									start = 0;
+							}
+							sofar += 1;
+						}
+					}
+				}
 
 			}
-
-		} else { return 0; }
+		}
 
 	}
 
-	return 0;
+	return data_ptr;
 }
 
 int fs_write( int inumber, const char *data, int length, int offset )
