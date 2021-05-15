@@ -286,6 +286,36 @@ int fs_getsize( int inumber )
 
 int fs_read( int inumber, char *data, int length, int offset )
 {
+
+	// Make sure filesystem is mounted
+	if(mounted == 0)
+		return -1;
+
+	// declaring unions
+	union fs_block block;
+	union fs_block iNodeBlock;	
+
+	// load disk block 0
+	disk_read(0,block.data);
+
+	// Make sure inode can be read
+	if(block.super.magic == FS_MAGIC){
+
+		disk_read(inumber, iNodeBlock.data);
+			
+		// Make sure inode is valid for reading
+		if(iNodeBlock.inode[inumber].isvalid){
+			
+			for(int i = offset; i < (offset + length); i++){
+
+				data[i - offset] = iNodeBlock.data[i];
+
+			}
+
+		} else { return 0; }
+
+	}
+
 	return 0;
 }
 
