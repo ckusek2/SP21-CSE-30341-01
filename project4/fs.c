@@ -86,41 +86,42 @@ void fs_debug()
 	printf("    %d blocks for inodes\n",block.super.ninodeblocks);
 	printf("    %d inodes total\n",block.super.ninodes);
 
-	// load disk block 1
-	disk_read(1, iNodeBlock.data);
+	for(int b = 1; b < block.super.ninodeblocks; b++){
+		// load disk blocks
+		disk_read(b, iNodeBlock.data);
 
-	for(int i = 0; i < POINTERS_PER_INODE; i++){
-		// make sure inode is valid
-		if(iNodeBlock.inode[i].isvalid){
-			// print inode number and size
-			printf("inode %d:\n", i);
-			printf("    size: %d bytes\n", iNodeBlock.inode[i].size);
+		for(int i = 0; i < INODES_PER_BLOCK; i++){
+			// make sure inode is valid
+			if(iNodeBlock.inode[i].isvalid){
+				// print inode number and size
+				printf("inode %d:\n", i);
+				printf("    size: %d bytes\n", iNodeBlock.inode[i].size);
 			
-			// print out the direct blocks in iNodeBlock
-			printf("    direct blocks: ");
-			for(int j = 0; j < POINTERS_PER_INODE; j++){
-				if(iNodeBlock.inode[i].direct[j])
-					printf("%d ", iNodeBlock.inode[i].direct[j]);
-			}
-			printf("\n");
-
-
-			int indirect = iNodeBlock.inode[i].indirect;
-			// check if indirect block is 0
-			if(indirect){
-				// print indirect block number
-				printf("    indirect block: %d\n", iNodeBlock.inode[i].indirect);
-
-				// print indirect data blocks
-				printf("    indirect data blocks: ");
-				// load disk block of indirect disk
-				disk_read(indirect, indirectBlock.data);
-				// go through pointers on indirect block and print non-zero pointer values
-				for(int pointer = 0; pointer < POINTERS_PER_BLOCK; pointer++){
-					if(indirectBlock.pointers[pointer])
-						printf("%d ", indirectBlock.pointers[pointer]);
+				// print out the direct blocks in iNodeBlock
+				printf("    direct blocks: ");
+				for(int j = 0; j < POINTERS_PER_INODE; j++){
+					if(iNodeBlock.inode[i].direct[j])
+						printf("%d ", iNodeBlock.inode[i].direct[j]);
 				}
 				printf("\n");
+
+				int indirect = iNodeBlock.inode[i].indirect;
+				// check if indirect block is 0
+				if(indirect){
+					// print indirect block number
+					printf("    indirect block: %d\n", iNodeBlock.inode[i].indirect);
+
+					// print indirect data blocks
+					printf("    indirect data blocks: ");
+					// load disk block of indirect disk
+					disk_read(indirect, indirectBlock.data);
+					// go through pointers on indirect block and print non-zero pointer values
+					for(int pointer = 0; pointer < POINTERS_PER_BLOCK; pointer++){
+						if(indirectBlock.pointers[pointer])
+							printf("%d ", indirectBlock.pointers[pointer]);
+					}
+					printf("\n");
+				}
 			}
 		}
 	}
